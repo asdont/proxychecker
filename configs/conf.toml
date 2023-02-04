@@ -1,0 +1,5 @@
+[server]
+Port = 50000
+ReadTimeoutSeconds = 15
+WriteTimeoutSeconds = 5
+ShutdownMaxTimeSeconds = 10
