@@ -6,14 +6,25 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"proxychecker/internal/checker"
 )
+
+const shortenUserRequestIDTo = 1e8
 
 var errProxiesRequired = errors.New("proxies required")
 
-func V1SendProxies() gin.HandlerFunc {
+type SendProxiesRes struct {
+	RequestID string `json:"requestID"`
+}
+
+func V1SendProxies(mu *sync.RWMutex, userRequests map[int]Checker, chErr chan<- error) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		proxies, err := parseProxies(c)
 		if err != nil {
@@ -30,6 +41,31 @@ func V1SendProxies() gin.HandlerFunc {
 			})
 		}
 
+		userRequestID := createUserRequestID(userRequests)
+
+		mu.Lock()
+		userRequests[userRequestID] = Checker{
+			Status: statusNotReady,
+		}
+		mu.Unlock()
+
+		go func() {
+			proxiesData, err := checker.CheckProxies(proxies)
+			if err != nil {
+				chErr <- fmt.Errorf("check proxies: %w", err)
+			}
+
+			mu.Lock()
+			userRequests[userRequestID] = Checker{
+				Status:  statusOk,
+				Proxies: proxiesData,
+			}
+			mu.Unlock()
+		}()
+
+		c.JSON(http.StatusOK, SendProxiesRes{
+			RequestID: strconv.Itoa(userRequestID),
+		})
 	}
 }
 
@@ -42,4 +78,18 @@ func parseProxies(c *gin.Context) ([]string, error) {
 	return strings.FieldsFunc(string(bytes.TrimSpace(body)), func(r rune) bool {
 		return r == '\n'
 	}), nil
+}
+
+func createUserRequestID(userRequests map[int]Checker) int {
+	userRequestID := time.Now().UnixNano() % shortenUserRequestIDTo
+
+	for {
+		if _, exists := userRequests[userRequestID]; exists {
+			userRequestID++
+
+			continue
+		}
+
+		return userRequestID
+	}
 }

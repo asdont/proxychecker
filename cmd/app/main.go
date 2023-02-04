@@ -2,18 +2,24 @@ package main
 
 import (
 	"log"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 
 	"proxychecker/internal/config"
+	"proxychecker/internal/handlers"
 	"proxychecker/internal/transport/http"
 )
 
 const fileConf = "conf.toml"
 
 func main() {
+	var mu sync.RWMutex
+
 	chSuccess := make(chan struct{}, 1)
 	chErr := make(chan error, 1)
+
+	userRequests := make(map[int]handlers.Checker)
 
 	conf, err := config.GetConfig(fileConf)
 	if err != nil {
@@ -27,7 +33,7 @@ func main() {
 	}
 
 	go func() {
-		if err := serverHTTP.Run(chErr); err != nil {
+		if err := serverHTTP.Run(&mu, userRequests, chErr); err != nil {
 			log.Fatalf("server: http: %v", err)
 		}
 	}()

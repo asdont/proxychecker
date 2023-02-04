@@ -8,10 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"proxychecker/internal/handlers"
 )
 
 var errWrongParameter = errors.New("wrong parameter")
@@ -60,7 +63,7 @@ func ConfigHTTP(
 	}, nil
 }
 
-func (s ServerHTTP) Run(chErr chan<- error) error {
+func (s ServerHTTP) Run(mu *sync.RWMutex, userRequests map[int]handlers.Checker, chErr chan<- error) error {
 	gin.SetMode(s.Mode)
 
 	router := gin.New()
@@ -69,7 +72,7 @@ func (s ServerHTTP) Run(chErr chan<- error) error {
 		gin.Recovery(),
 	)
 
-	setRoutes(router)
+	setRoutes(mu, router, userRequests, chErr)
 
 	srv := &http.Server{
 		Addr:         ":" + s.Port,
@@ -91,10 +94,10 @@ func (s ServerHTTP) Run(chErr chan<- error) error {
 	return nil
 }
 
-func setRoutes(router *gin.Engine) {
+func setRoutes(mu *sync.RWMutex, router *gin.Engine, userRequests map[int]handlers.Checker, chErr chan<- error) {
 	v1 := router.Group("/api/v1")
 	{
-		v1.POST("/proxies")
+		v1.POST("/proxies", handlers.V1SendProxies(mu, userRequests, chErr))
 	}
 }
 

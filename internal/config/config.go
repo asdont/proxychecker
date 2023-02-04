@@ -11,7 +11,8 @@ import (
 var errInvalidField = errors.New("invalid field")
 
 type Conf struct {
-	Server server
+	Server  server
+	Checker checker
 }
 
 type server struct {
@@ -19,6 +20,13 @@ type server struct {
 	ReadTimeoutSeconds     int `toml:"ReadTimeoutSeconds" validate:"gte=1,lte=3000"`
 	WriteTimeoutSeconds    int `toml:"WriteTimeoutSeconds" validate:"gte=1,lte=3000"`
 	ShutdownMaxTimeSeconds int `toml:"ShutdownMaxTimeSeconds" validate:"gte=1,lte=3000"`
+}
+
+type checker struct {
+	HeaderUserAgent             string `toml:"HeaderUserAgent" validate:"g"`
+	ClientTimeoutSeconds        int    `toml:"ClientTimeoutSeconds" validate:"gte=1,lte=300"`
+	AttemptsGetResponse         int    `toml:"AttemptsGetResponse" validate:"gte=1,lte=100"`
+	DelayBetweenAttemptsSeconds int    `toml:"DelayBetweenAttemptsSeconds" validate:"gte=1,lte=300"`
 }
 
 func GetConfig(fileName string) (Conf, error) {
