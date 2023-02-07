@@ -11,6 +11,15 @@ type GetProxiesURI struct {
 	RequestID int `uri:"requestID" binding:"required"`
 }
 
+// V1GetProxies
+//
+// @Summary get verified proxies by request id
+// @Tags proxies
+// @Produce json
+// @Param requestID path string true "request ID"
+// @Success 200 {object} Checker "data of checked proxies"
+// @Failure 400 {object} HTTPError "error text"
+// @Router /v1/proxies/{request_id} [get]
 func V1GetProxies(mu *sync.RWMutex, userRequests map[int]Checker) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var u GetProxiesURI

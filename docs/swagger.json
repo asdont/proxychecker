@@ -1,0 +1,154 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "title": "API Proxy Checker",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "127.0.0.1:30122",
+    "basePath": "/api",
+    "paths": {
+        "/v1/proxies": {
+            "post": {
+                "consumes": [
+                    "text/plain"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proxies"
+                ],
+                "summary": "send the proxies in the request body",
+                "parameters": [
+                    {
+                        "description": "proxy list, delimiter - new line",
+                        "name": "data",
+                        "in": "body",
+                        "schema": {
+                            "type": "primitive"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JSON with request ID",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.SendProxiesRes"
+                        }
+                    },
+                    "400": {
+                        "description": "error text",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "error text",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/proxies/{request_id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "proxies"
+                ],
+                "summary": "get verified proxies by request id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "request ID",
+                        "name": "requestID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "data of checked proxies",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.Checker"
+                        }
+                    },
+                    "400": {
+                        "description": "error text",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.HTTPError"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "checker.ProxyData": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "realIP": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.Checker": {
+            "type": "object",
+            "properties": {
+                "proxies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/checker.ProxyData"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.HTTPError": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.SendProxiesRes": {
+            "type": "object",
+            "properties": {
+                "requestID": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

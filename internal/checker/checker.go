@@ -2,6 +2,7 @@ package checker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -30,7 +31,7 @@ func CheckProxies(
 	rawProxies []string,
 	regexps config.Regexps,
 ) ([]ProxyData, error) {
-	proxiesData := make([]ProxyData, len(rawProxies))
+	proxiesData := make([]ProxyData, 0, len(rawProxies))
 
 	chSuccess := make(chan struct{}, 1)
 	chErr := make(chan error, 1)
@@ -60,7 +61,7 @@ func CheckProxies(
 	go func() {
 		wg.Wait()
 
-		<-chSuccess
+		chSuccess <- struct{}{}
 	}()
 
 	select {
@@ -69,7 +70,6 @@ func CheckProxies(
 
 	case <-chSuccess:
 		return proxiesData, nil
-
 	}
 }
 
@@ -91,21 +91,23 @@ func checkProxy(
 	if err != nil {
 		proxyData.Comment = err.Error()
 
-		return proxyData, nil
+		return proxyData, nil //nolint:nilerr
 	}
 
 	client, err := createClient(proxyURL)
 	if err != nil {
-		proxyData.Comment = err.Error()
-
-		return proxyData, fmt.Errorf("create transport: %w", err)
+		return ProxyData{}, fmt.Errorf("create transport: %w", err)
 	}
 
 	pageBodyMyIP, err := getPageBodyMyIP(ctx, client, requestTimeoutSeconds, uriServiceMyIP, userAgentHeader)
 	if err != nil {
 		proxyData.Comment = err.Error()
 
-		return ProxyData{}, fmt.Errorf("get page body with my ip")
+		if errors.Is(err, errProxyFailed) || errors.Is(err, errStatusCode) {
+			return proxyData, nil
+		}
+
+		return ProxyData{}, fmt.Errorf("get page body: my ip: %w", err)
 	}
 
 	proxyData.Status = config.ProxyStatusOk
@@ -113,8 +115,6 @@ func checkProxy(
 
 	ipData, err := dbGeo.Get_all(proxyData.RealIP)
 	if err != nil {
-		proxyData.Comment = err.Error()
-
 		return ProxyData{}, fmt.Errorf("db geo: get all: %w", err)
 	}
 

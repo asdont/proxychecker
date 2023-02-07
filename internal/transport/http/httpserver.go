@@ -11,6 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ip2location/ip2location-go"
+	swagFiles "github.com/swaggo/files"
+	swagGin "github.com/swaggo/gin-swagger"
 
 	"proxychecker/internal/config"
 	"proxychecker/internal/handlers"
@@ -90,7 +92,14 @@ func (s ServerHTTP) Run(
 	}
 
 	go func() {
-		if err := stopServer(ctx, srv, s.ShutdownMaxTime); err != nil {
+		<-ctx.Done()
+
+		ctxShutdown, cancel := context.WithTimeout(context.Background(), s.ShutdownMaxTime)
+		defer cancel()
+
+		//nolint:contextcheck
+		// It is required to wait for shutdown.
+		if err := stopServer(ctxShutdown, srv); err != nil {
 			chErr <- fmt.Errorf("stop http server: %w", err)
 		}
 	}()
@@ -120,16 +129,13 @@ func setRoutes(
 	{
 		v1.POST("/proxies", handlers.V1SendProxies(ctx, mu, conf, dbGeo, userRequests, regexps, chErr))
 		v1.GET("/proxies/:requestID", handlers.V1GetProxies(mu, userRequests))
+
+		v1.GET("/doc/*any", swagGin.WrapHandler(swagFiles.Handler))
 	}
 }
 
-func stopServer(ctx context.Context, srv *http.Server, shutdownMaxTime time.Duration) error {
-	<-ctx.Done()
-
-	ctxShutdown, cancel := context.WithTimeout(context.Background(), shutdownMaxTime)
-	defer cancel()
-
-	if err := srv.Shutdown(ctxShutdown); err != nil {
+func stopServer(ctx context.Context, srv *http.Server) error {
+	if err := srv.Shutdown(ctx); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return fmt.Errorf("shutdown: forced stop: %w", err)
 		}

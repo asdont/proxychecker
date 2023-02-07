@@ -14,8 +14,17 @@ import (
 	"proxychecker/internal/config"
 	"proxychecker/internal/handlers"
 	"proxychecker/internal/transport/http"
+
+	_ "proxychecker/docs"
 )
 
+// @title API Proxy Checker
+// @version 1.0
+
+// @host 127.0.0.1:30122
+// @schemes http
+// @BasePath /api
+// @query.collection.format multi
 func main() {
 	var mu sync.RWMutex
 
@@ -29,7 +38,7 @@ func main() {
 		log.Fatalf("get config: %v", err)
 	}
 
-	dbGeo, err := app.DBGeo(config.FileGeoDb)
+	dbGeo, err := app.DBGeo(config.FileGeoDB)
 	if err != nil {
 		log.Fatalf("geo db: %v", err)
 	}
@@ -64,7 +73,7 @@ func main() {
 		log.Println("server closed... ok")
 
 	case err := <-chErr:
-		log.Fatal(err)
+		log.Fatal(err) //nolint:gocritic
 	}
 }
 

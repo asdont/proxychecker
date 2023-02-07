@@ -3,6 +3,7 @@ linters:
   disable:
     - deadcode # deprecated
     - exhaustivestruct # is deprecated
+    - exhaustruct
     - gci
     - gofumpt # goland conflict
     - golint # archived
@@ -15,6 +16,7 @@ linters:
     - scopelint # archived
     - sqlclosecheck # is disabled because of generics
     - structcheck # deprecated
+    - tagliatelle # conflict
     - varcheck # deprecated
     - wastedassign # is disabled because of generics
 
@@ -26,6 +28,10 @@ run:
     - "uigen"
 
 linters-settings:
+  godot:
+    exclude:
+      - "@.*"
+
   gomnd:
     settings:
       mnd:

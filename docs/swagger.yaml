@@ -1,0 +1,99 @@
+basePath: /api
+definitions:
+  checker.ProxyData:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      comment:
+        type: string
+      country:
+        type: string
+      realIP:
+        type: string
+      region:
+        type: string
+      status:
+        type: string
+    type: object
+  handlers.Checker:
+    properties:
+      proxies:
+        items:
+          $ref: '#/definitions/checker.ProxyData'
+        type: array
+      status:
+        type: string
+    type: object
+  handlers.HTTPError:
+    properties:
+      comment:
+        type: string
+      error:
+        type: string
+    type: object
+  handlers.SendProxiesRes:
+    properties:
+      requestID:
+        type: string
+    type: object
+host: 127.0.0.1:30122
+info:
+  contact: {}
+  title: API Proxy Checker
+  version: "1.0"
+paths:
+  /v1/proxies:
+    post:
+      consumes:
+      - text/plain
+      parameters:
+      - description: proxy list, delimiter - new line
+        in: body
+        name: data
+        schema:
+          type: primitive
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JSON with request ID
+          schema:
+            $ref: '#/definitions/handlers.SendProxiesRes'
+        "400":
+          description: error text
+          schema:
+            $ref: '#/definitions/handlers.HTTPError'
+        "500":
+          description: error text
+          schema:
+            $ref: '#/definitions/handlers.HTTPError'
+      summary: send the proxies in the request body
+      tags:
+      - proxies
+  /v1/proxies/{request_id}:
+    get:
+      parameters:
+      - description: request ID
+        in: path
+        name: requestID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: data of checked proxies
+          schema:
+            $ref: '#/definitions/handlers.Checker'
+        "400":
+          description: error text
+          schema:
+            $ref: '#/definitions/handlers.HTTPError'
+      summary: get verified proxies by request id
+      tags:
+      - proxies
+schemes:
+- http
+swagger: "2.0"

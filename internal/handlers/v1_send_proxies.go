@@ -25,6 +25,17 @@ type SendProxiesRes struct {
 	RequestID string `json:"requestID"`
 }
 
+// V1SendProxies
+//
+// @Summary send the proxies in the request body
+// @Tags proxies
+// @Accept text/plain
+// @Produce json
+// @Param data body string false "proxy list, delimiter - new line"
+// @Success 200 {object} SendProxiesRes "JSON with request ID"
+// @Failure 400 {object} HTTPError "error text"
+// @Failure 500 {object} HTTPError "error text"
+// @Router /v1/proxies [post]
 func V1SendProxies(
 	ctx context.Context,
 	mu *sync.RWMutex,

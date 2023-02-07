@@ -4,7 +4,7 @@ import "regexp"
 
 const (
 	FileConf  = "configs/conf.toml"
-	FileGeoDb = "data/geo-db.bin"
+	FileGeoDB = "data/geo-db.bin"
 )
 
 const ShortenUserRequestIDTo = 1e8
@@ -25,7 +25,7 @@ const (
 	regexpProxyAuth     = `(@|/).+:.+$`
 	regexpProxyHostPort = `(\d{1,3}[.]){3}\d{1,3}:\d{0,5}`
 	regexpIPv4          = `(\d{1,3}[.]){3}\d{1,3}`
-	regexpIPv6          = `([0-9A-Fa-f]{1,4})(:[0-9A-Fa-f]{1,4})*::([0-9A-Fa-f]{1,4})(:[0-9A-Fa-f]{1,4})*|([0-9A-Fa-f]{1,4})(:[0-9A-Fa-f]{1,4}){7}`
+	regexpIPv6          = `([0-9A-Fa-f]{1,4})(:[0-9A-Fa-f]{1,4})*::([0-9A-Fa-f]{1,4})(:[0-9A-Fa-f]{1,4})*|([0-9A-Fa-f]{1,4})(:[0-9A-Fa-f]{1,4}){7}` //nolint:lll
 )
 
 type Regexps struct {
