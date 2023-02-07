@@ -8,7 +8,7 @@
 
 **./data/geo-db.bin** - geo DB
 
-**./docks** - OpenAPI
+**./docs** - OpenAPI
 
 ## Build/Run
 
