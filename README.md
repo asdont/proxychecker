@@ -4,7 +4,7 @@
 
 ---
 
-**./configs/conf.toml** - configuration 
+**./configs/conf.toml** - configuration
 
 **./data/geo-db.bin** - geo DB
 
@@ -14,9 +14,21 @@
 
 ---
 
-**build/run** - `make build` `./apiproxychecker`
+**build/run**
 
-**run only** - `make run`
+```sh
+ make build
+ ```
+
+``` sh
+./apiproxychecker
+```
+
+**run only**
+
+``` sh
+make run
+```
 
 ---
 
