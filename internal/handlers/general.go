@@ -8,11 +8,12 @@ type HTTPError struct {
 }
 
 const (
-	statusNotReady = "NOT_READY"
-	statusOk       = "OK"
+	statusUserRequestNotFound = "NOT_FOUND"
+	statusUserRequestNotReady = "NOT_READY"
+	statusUserRequestOk       = "OK"
 )
 
 type Checker struct {
-	Status  string
-	Proxies []checker.ProxyData
+	Status  string              `json:"status"`
+	Proxies []checker.ProxyData `json:"proxies,omitempty"`
 }

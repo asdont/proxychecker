@@ -1,17 +1,20 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
 
+	"proxychecker/internal/app"
 	"proxychecker/internal/config"
 	"proxychecker/internal/handlers"
 	"proxychecker/internal/transport/http"
 )
-
-const fileConf = "conf.toml"
 
 func main() {
 	var mu sync.RWMutex
@@ -21,9 +24,14 @@ func main() {
 
 	userRequests := make(map[int]handlers.Checker)
 
-	conf, err := config.GetConfig(fileConf)
+	conf, err := config.GetConfig(config.FileConf)
 	if err != nil {
 		log.Fatalf("get config: %v", err)
+	}
+
+	dbGeo, err := app.DBGeo(config.FileGeoDb)
+	if err != nil {
+		log.Fatalf("geo db: %v", err)
 	}
 
 	serverHTTP, err := http.ConfigHTTP(gin.ReleaseMode, conf.Server.Port,
@@ -32,15 +40,38 @@ func main() {
 		log.Fatalf("http config: %v", err)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	go func() {
-		if err := serverHTTP.Run(&mu, userRequests, chErr); err != nil {
+		appStop()
+
+		cancel()
+	}()
+
+	go func() {
+		log.Printf("[SERVER][HTTP] port: %d\n", conf.Server.Port)
+
+		if err := serverHTTP.Run(ctx, &mu, conf, dbGeo, userRequests, config.CompileRegexps(), chErr); err != nil {
 			log.Fatalf("server: http: %v", err)
 		}
+
+		chSuccess <- struct{}{}
 	}()
 
 	select {
 	case <-chSuccess:
+		log.Println("server closed... ok")
+
 	case err := <-chErr:
 		log.Fatal(err)
 	}
+}
+
+func appStop() {
+	sigChan := make(chan os.Signal, 1)
+
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+	log.Println("signal:", <-sigChan)
 }

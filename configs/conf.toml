@@ -1,12 +1,12 @@
 [server]
-Port = 50000
+Port = 30122
 ReadTimeoutSeconds = 15
 WriteTimeoutSeconds = 5
 ShutdownMaxTimeSeconds = 10
 
 [checker]
 HeaderUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 YaBrowser/23.1.1.1038 (beta) Yowser/2.5 Safari/537.36"
-ClientTimeoutSeconds = 15
-
-AttemptsGetResponse = 3
+RequestTimeoutSeconds = 15
 DelayBetweenAttemptsSeconds = 30
+
+ServiceMyIP = "https://mnemag.ru/myip"

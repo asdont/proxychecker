@@ -23,9 +23,9 @@ type server struct {
 }
 
 type checker struct {
-	HeaderUserAgent             string `toml:"HeaderUserAgent" validate:"g"`
-	ClientTimeoutSeconds        int    `toml:"ClientTimeoutSeconds" validate:"gte=1,lte=300"`
-	AttemptsGetResponse         int    `toml:"AttemptsGetResponse" validate:"gte=1,lte=100"`
+	ServiceMyIP                 string `toml:"ServiceMyIP" validate:"url"`
+	HeaderUserAgent             string `toml:"HeaderUserAgent"`
+	RequestTimeoutSeconds       int    `toml:"RequestTimeoutSeconds" validate:"gte=1,lte=300"`
 	DelayBetweenAttemptsSeconds int    `toml:"DelayBetweenAttemptsSeconds" validate:"gte=1,lte=300"`
 }
 
@@ -36,9 +36,9 @@ func GetConfig(fileName string) (Conf, error) {
 	}
 
 	if err := validator.New().Struct(conf); err != nil {
-		var vErrors validator.ValidationErrors
-		if errors.As(err, &vErrors) {
-			if err := checkValidatorErrs(vErrors); err != nil {
+		var validatorErrors validator.ValidationErrors
+		if errors.As(err, &validatorErrors) {
+			if err := checkValidatorErrs(validatorErrors); err != nil {
 				return Conf{}, fmt.Errorf("validator: check err: %w", err)
 			}
 

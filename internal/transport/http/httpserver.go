@@ -5,15 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"os/signal"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ip2location/ip2location-go"
 
+	"proxychecker/internal/config"
 	"proxychecker/internal/handlers"
 )
 
@@ -63,7 +62,15 @@ func ConfigHTTP(
 	}, nil
 }
 
-func (s ServerHTTP) Run(mu *sync.RWMutex, userRequests map[int]handlers.Checker, chErr chan<- error) error {
+func (s ServerHTTP) Run(
+	ctx context.Context,
+	mu *sync.RWMutex,
+	conf config.Conf,
+	dbGeo *ip2location.DB,
+	userRequests map[int]handlers.Checker,
+	regexps config.Regexps,
+	chErr chan<- error,
+) error {
 	gin.SetMode(s.Mode)
 
 	router := gin.New()
@@ -72,46 +79,57 @@ func (s ServerHTTP) Run(mu *sync.RWMutex, userRequests map[int]handlers.Checker,
 		gin.Recovery(),
 	)
 
-	setRoutes(mu, router, userRequests, chErr)
+	setRoutes(ctx, mu, conf, dbGeo, router, userRequests, regexps, chErr)
 
 	srv := &http.Server{
-		Addr:         ":" + s.Port,
-		Handler:      router,
-		ReadTimeout:  s.ReadTimeout,
-		WriteTimeout: s.WriteTimeout,
+		Addr:           ":" + s.Port,
+		Handler:        router,
+		ReadTimeout:    s.ReadTimeout,
+		WriteTimeout:   s.WriteTimeout,
+		MaxHeaderBytes: config.ServerMaxHeaderBytesMib,
 	}
 
 	go func() {
-		if err := stopServer(srv, s.ShutdownMaxTime); err != nil {
+		if err := stopServer(ctx, srv, s.ShutdownMaxTime); err != nil {
 			chErr <- fmt.Errorf("stop http server: %w", err)
 		}
 	}()
 
 	if err := srv.ListenAndServe(); err != nil {
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+
 		return fmt.Errorf("listen and serve: %w", err)
 	}
 
 	return nil
 }
 
-func setRoutes(mu *sync.RWMutex, router *gin.Engine, userRequests map[int]handlers.Checker, chErr chan<- error) {
+func setRoutes(
+	ctx context.Context,
+	mu *sync.RWMutex,
+	conf config.Conf,
+	dbGeo *ip2location.DB,
+	router *gin.Engine,
+	userRequests map[int]handlers.Checker,
+	regexps config.Regexps,
+	chErr chan<- error,
+) {
 	v1 := router.Group("/api/v1")
 	{
-		v1.POST("/proxies", handlers.V1SendProxies(mu, userRequests, chErr))
+		v1.POST("/proxies", handlers.V1SendProxies(ctx, mu, conf, dbGeo, userRequests, regexps, chErr))
+		v1.GET("/proxies/:requestID", handlers.V1GetProxies(mu, userRequests))
 	}
 }
 
-func stopServer(srv *http.Server, shutdownMaxTime time.Duration) error {
-	chSig := make(chan os.Signal, 1)
+func stopServer(ctx context.Context, srv *http.Server, shutdownMaxTime time.Duration) error {
+	<-ctx.Done()
 
-	signal.Notify(chSig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
-
-	<-chSig
-
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownMaxTime)
+	ctxShutdown, cancel := context.WithTimeout(context.Background(), shutdownMaxTime)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(ctxShutdown); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return fmt.Errorf("shutdown: forced stop: %w", err)
 		}
