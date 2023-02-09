@@ -20,9 +20,9 @@ const (
 )
 
 type Checker struct {
-	Status  string              `json:"status"`
-	Proxies []checker.ProxyData `json:"proxies,omitempty"`
-	Added   time.Time           `json:"-"`
+	Status  string               `json:"status"`
+	Proxies []*checker.ProxyData `json:"proxies,omitempty"`
+	Added   time.Time            `json:"-"`
 }
 
 // DeleteLostUserRequests delete requests that the user has not completed.

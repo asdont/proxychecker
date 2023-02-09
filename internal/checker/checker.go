@@ -30,30 +30,31 @@ func CheckProxies(
 	dbGeo *ip2location.DB,
 	rawProxies []string,
 	regexps config.Regexps,
-) ([]ProxyData, error) {
-	proxiesData := make([]ProxyData, 0, len(rawProxies))
-
+) ([]*ProxyData, error) {
 	chSuccess := make(chan struct{}, 1)
 	chErr := make(chan error, 1)
 
+	proxiesData := convertProxies(rawProxies, regexps)
+
 	var wg sync.WaitGroup
 
-	for _, proxyAddress := range convertProxies(rawProxies, regexps) {
+	for _, proxyData := range proxiesData {
+		if proxyData.Comment != "" { // Comment = error
+			continue
+		}
+
 		wg.Add(1)
 
-		go func() {
+		go func(proxyData *ProxyData) {
 			defer wg.Done()
 
-			proxyData, err := checkProxy(
-				ctx, dbGeo, regexps, proxyAddress,
+			if err := checkProxyAndSetData(
+				ctx, dbGeo, regexps, proxyData,
 				conf.Checker.RequestTimeoutSeconds, conf.Checker.ServiceMyIP, conf.Checker.HeaderUserAgent,
-			)
-			if err != nil {
+			); err != nil {
 				chErr <- fmt.Errorf("check proxy: %w", err)
 			}
-
-			proxiesData = append(proxiesData, proxyData)
-		}()
+		}(proxyData)
 
 		time.Sleep(time.Millisecond * config.DelayBetweenProxyChecksMs)
 	}
@@ -73,43 +74,41 @@ func CheckProxies(
 	}
 }
 
-func checkProxy(
+func checkProxyAndSetData(
 	ctx context.Context,
 	dbGeo *ip2location.DB,
 	regexps config.Regexps,
-	proxyAddress string,
+	proxyData *ProxyData,
 	requestTimeoutSeconds int,
 	uriServiceMyIP string,
 	userAgentHeader string,
-) (ProxyData, error) {
-	proxyData := ProxyData{
-		Address: proxyAddress,
-		Status:  config.ProxyStatusFail,
-	}
-
-	proxyURL, err := url.Parse(proxyAddress)
+) error {
+	proxyURL, err := url.Parse(proxyData.Address)
 	if err != nil {
+		proxyData.Status = config.ProxyStatusFail
 		proxyData.Comment = "wrong proxy address"
 
-		return proxyData, nil //nolint:nilerr
+		return nil
 	}
 
 	client, err := createClient(proxyURL)
 	if err != nil {
+		proxyData.Status = config.ProxyStatusFail
 		proxyData.Comment = "wrong proxy address"
 
-		return proxyData, nil //nolint:nilerr
+		return nil
 	}
 
 	pageBodyMyIP, err := getPageBodyMyIP(ctx, client, requestTimeoutSeconds, uriServiceMyIP, userAgentHeader)
 	if err != nil {
+		proxyData.Status = config.ProxyStatusFail
 		proxyData.Comment = "bad proxy"
 
 		if errors.Is(err, errProxyFailed) || errors.Is(err, errStatusCode) {
-			return proxyData, nil
+			return nil
 		}
 
-		return ProxyData{}, fmt.Errorf("get page body: my ip: %w", err)
+		return fmt.Errorf("get page body: my ip: %w", err)
 	}
 
 	proxyData.Status = config.ProxyStatusOk
@@ -117,35 +116,31 @@ func checkProxy(
 
 	ipData, err := dbGeo.Get_all(proxyData.RealIP)
 	if err != nil {
-		return ProxyData{}, fmt.Errorf("db geo: get all: %w", err)
+		return fmt.Errorf("db geo: get all: %w", err)
 	}
 
 	proxyData.Country = ipData.Country_long
 	proxyData.Region = ipData.Region
 	proxyData.City = ipData.City
 
-	return proxyData, nil
+	return nil
 }
 
-func convertProxies(rawProxies []string, regexps config.Regexps) []string {
+func convertProxies(rawProxies []string, regexps config.Regexps) []*ProxyData {
+	proxies := make([]*ProxyData, len(rawProxies))
+
 	for i, rawProxy := range rawProxies {
+		proxyData := &ProxyData{
+			Address: rawProxy,
+		}
+
 		rawProxy = strings.Join(strings.Fields(rawProxy), "")
 
 		hostPort := regexps.ProxyHostPort.FindString(rawProxy)
-		if hostPort == "" {
-			rawProxies[i] = ""
-
-			continue
-		}
 
 		rawProxy = strings.ReplaceAll(rawProxy, hostPort, "")
 
 		scheme := strings.TrimRight(regexps.ProxyScheme.FindString(rawProxy), ":")
-		if scheme == "" {
-			rawProxies[i] = ""
-
-			continue
-		}
 
 		rawProxy = strings.ReplaceAll(rawProxy, scheme, "")
 
@@ -153,22 +148,18 @@ func convertProxies(rawProxies []string, regexps config.Regexps) []string {
 		auth = strings.TrimLeft(auth, "/@")
 		auth = strings.TrimRight(auth, "@")
 
-		var sb strings.Builder
+		if hostPort == "" || scheme == "" {
+			proxyData.Comment = "wrong proxy address"
 
-		sb.WriteString(scheme)
-		sb.WriteString("://")
+			proxies[i] = proxyData
+		} else {
+			proxyData.Address = createProxyAddress(scheme, auth, hostPort)
 
-		if auth != "" {
-			sb.WriteString(auth)
-			sb.WriteString("@")
+			proxies[i] = proxyData
 		}
-
-		sb.WriteString(hostPort)
-
-		rawProxies[i] = sb.String()
 	}
 
-	return rawProxies
+	return proxies
 }
 
 func extractRealIP(body []byte, regexps config.Regexps) string {
@@ -183,4 +174,20 @@ func extractRealIP(body []byte, regexps config.Regexps) string {
 	}
 
 	return ""
+}
+
+func createProxyAddress(scheme, auth, hostPort string) string {
+	var sb strings.Builder
+
+	sb.WriteString(scheme)
+	sb.WriteString("://")
+
+	if auth != "" {
+		sb.WriteString(auth)
+		sb.WriteString("@")
+	}
+
+	sb.WriteString(hostPort)
+
+	return sb.String()
 }
