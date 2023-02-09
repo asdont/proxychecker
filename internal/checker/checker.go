@@ -89,19 +89,21 @@ func checkProxy(
 
 	proxyURL, err := url.Parse(proxyAddress)
 	if err != nil {
-		proxyData.Comment = err.Error()
+		proxyData.Comment = "wrong proxy address"
 
 		return proxyData, nil //nolint:nilerr
 	}
 
 	client, err := createClient(proxyURL)
 	if err != nil {
-		return ProxyData{}, fmt.Errorf("create transport: %w", err)
+		proxyData.Comment = "wrong proxy address"
+
+		return proxyData, nil //nolint:nilerr
 	}
 
 	pageBodyMyIP, err := getPageBodyMyIP(ctx, client, requestTimeoutSeconds, uriServiceMyIP, userAgentHeader)
 	if err != nil {
-		proxyData.Comment = err.Error()
+		proxyData.Comment = "bad proxy"
 
 		if errors.Is(err, errProxyFailed) || errors.Is(err, errStatusCode) {
 			return proxyData, nil

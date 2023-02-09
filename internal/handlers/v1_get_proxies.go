@@ -5,8 +5,6 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-
-	"proxychecker/internal/checker"
 )
 
 type GetProxiesURI struct {
@@ -33,21 +31,6 @@ func V1GetProxies(mu *sync.RWMutex, userRequests map[int]Checker) gin.HandlerFun
 
 			return
 		}
-
-		c.JSON(http.StatusOK, Checker{
-			Status: statusUserRequestOk,
-			Proxies: []checker.ProxyData{
-				{
-					Status:  "ok",
-					Address: "socks5://login:password@1.1.1.1:7788",
-					RealIP:  "2.2.2.2",
-					Country: "Russia",
-					Region:  "Ekb",
-					City:    "Reft",
-					Comment: `client: do: proxy failed: Get "https://mnemag.ru/myip": Bad Request`,
-				},
-			},
-		})
 
 		checkerProxiesData, ok := userRequests[u.RequestID]
 		if !ok {
