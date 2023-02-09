@@ -13,6 +13,11 @@ const DelayBetweenProxyChecksMs = 50
 
 const ServerMaxHeaderBytesMib = 1 << 20
 
+const (
+	CheckForLostUserRequestsEveryMinutes = 10
+	DeleteLostUserRequestsAfterSeconds   = 60
+)
+
 type ProxyProtocol string
 
 const (

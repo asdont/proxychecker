@@ -66,6 +66,7 @@ func V1SendProxies(
 		mu.Lock()
 		userRequests[userRequestID] = Checker{
 			Status: statusUserRequestNotReady,
+			Added:  time.Now(),
 		}
 		mu.Unlock()
 

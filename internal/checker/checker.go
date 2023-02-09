@@ -21,7 +21,7 @@ type ProxyData struct {
 	Country string `json:"country"`
 	Region  string `json:"region"`
 	City    string `json:"city"`
-	Comment string `json:"comment,omitempty"`
+	Comment string `json:"comment"`
 }
 
 func CheckProxies(

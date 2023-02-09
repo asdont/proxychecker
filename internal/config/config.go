@@ -16,10 +16,13 @@ type Conf struct {
 }
 
 type server struct {
-	Port                   int `toml:"Port" validate:"gte=1,lte=65536"`
-	ReadTimeoutSeconds     int `toml:"ReadTimeoutSeconds" validate:"gte=1,lte=3000"`
-	WriteTimeoutSeconds    int `toml:"WriteTimeoutSeconds" validate:"gte=1,lte=3000"`
-	ShutdownMaxTimeSeconds int `toml:"ShutdownMaxTimeSeconds" validate:"gte=1,lte=3000"`
+	Port                   int      `toml:"Port" validate:"gte=1,lte=65536"`
+	ReadTimeoutSeconds     int      `toml:"ReadTimeoutSeconds" validate:"gte=1,lte=3000"`
+	WriteTimeoutSeconds    int      `toml:"WriteTimeoutSeconds" validate:"gte=1,lte=3000"`
+	ShutdownMaxTimeSeconds int      `toml:"ShutdownMaxTimeSeconds" validate:"gte=1,lte=3000"`
+	CORSAllowMethods       []string `toml:"CORSAllowMethods" validate:"min=1"`
+	CORSAllowHeaders       []string `toml:"CORSAllowHeaders" validate:"min=1"`
+	CORSAllowOrigins       []string `toml:"CORSAllowOrigins" validate:"min=1"`
 }
 
 type checker struct {

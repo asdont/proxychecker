@@ -58,6 +58,8 @@ func main() {
 		cancel()
 	}()
 
+	go handlers.DeleteLostUserRequests(&mu, userRequests)
+
 	go func() {
 		log.Printf("[SERVER][HTTP] port: %d\n", conf.Server.Port)
 

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/ip2location/ip2location-go"
 	swagFiles "github.com/swaggo/files"
@@ -77,7 +78,13 @@ func (s ServerHTTP) Run(
 
 	router := gin.New()
 
+	confCors := cors.DefaultConfig()
+	confCors.AllowHeaders = conf.Server.CORSAllowHeaders
+	confCors.AllowMethods = conf.Server.CORSAllowMethods
+	confCors.AllowOrigins = conf.Server.CORSAllowOrigins
+
 	router.Use(
+		cors.New(confCors),
 		gin.Recovery(),
 	)
 
