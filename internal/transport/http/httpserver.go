@@ -142,12 +142,12 @@ func setRoutes(
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
+	router.GET("/doc/*any", swagGin.WrapHandler(swagFiles.Handler))
+
 	v1 := router.Group("/api/v1")
 	{
 		v1.POST("/proxies", handlers.V1SendProxies(ctx, mu, conf, dbGeo, userRequests, regexps, chErr))
 		v1.GET("/proxies/:requestID", handlers.V1GetProxies(mu, userRequests))
-
-		v1.GET("/doc/*any", swagGin.WrapHandler(swagFiles.Handler))
 	}
 }
 

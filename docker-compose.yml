@@ -1,0 +1,9 @@
+version: '2'
+
+services:
+  server:
+    container_name: proxychecker
+    build: ./
+    command: ./proxychecker
+    ports:
+      - 30122:30122
