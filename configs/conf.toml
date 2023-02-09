@@ -6,7 +6,12 @@ ShutdownMaxTimeSeconds = 10
 
 CORSAllowHeaders = ["Accept", "Authorization", "Content-Type", "Origin", "X-Requested-With"]
 CORSAllowMethods = ["GET", "POST"]
-CORSAllowOrigins = ["http://127.0.0.1:5173", "http://localhost:5173"]
+CORSAllowOrigins = [
+    "http://127.0.0.1:5173", # NPM
+    "http://localhost:5173", # NPM
+    "http://127.0.0.1:30122",
+    "http://localhost:30122",
+]
 
 [checker]
 HeaderUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 YaBrowser/23.1.1.1038 (beta) Yowser/2.5 Safari/537.36"

@@ -14,6 +14,8 @@ import (
 	"proxychecker/internal/config"
 )
 
+var errPartial = errors.New("partial error")
+
 type ProxyData struct {
 	Status  string `json:"status"`
 	Address string `json:"address"`
@@ -51,7 +53,7 @@ func CheckProxies(
 			if err := checkProxyAndSetData(
 				ctx, dbGeo, regexps, proxyData,
 				conf.Checker.RequestTimeoutSeconds, conf.Checker.ServiceMyIP, conf.Checker.HeaderUserAgent,
-			); err != nil {
+			); err != nil && !errors.Is(err, errPartial) {
 				chErr <- fmt.Errorf("check proxy: %w", err)
 			}
 		}(proxyData)
@@ -88,15 +90,15 @@ func checkProxyAndSetData(
 		proxyData.Status = config.ProxyStatusFail
 		proxyData.Comment = "wrong proxy address"
 
-		return nil
+		return fmt.Errorf("url: parse: %w: %v", errPartial, err)
 	}
 
 	client, err := createClient(proxyURL)
 	if err != nil {
 		proxyData.Status = config.ProxyStatusFail
-		proxyData.Comment = "wrong proxy address"
+		proxyData.Comment = "client creation error"
 
-		return nil
+		return fmt.Errorf("create client: %w: %v", errPartial, err)
 	}
 
 	pageBodyMyIP, err := getPageBodyMyIP(ctx, client, requestTimeoutSeconds, uriServiceMyIP, userAgentHeader)
@@ -149,7 +151,7 @@ func convertProxies(rawProxies []string, regexps config.Regexps) []*ProxyData {
 		auth = strings.TrimRight(auth, "@")
 
 		if hostPort == "" || scheme == "" {
-			proxyData.Comment = "wrong proxy address"
+			proxyData.Comment = "wrong host or port"
 
 			proxies[i] = proxyData
 		} else {

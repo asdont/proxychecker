@@ -24,12 +24,24 @@
 ./apiproxychecker
 ```
 
+```
+http://localhost:30122
+```
+
 **run only**
 
 ``` sh
 make run
 ```
 
+```
+http://localhost:30122
+```
+
+## Interface
+
 ---
 
-not implemented - html interface
+>![app settings](docs/screen.jpg)
+
+---

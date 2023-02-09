@@ -78,6 +78,12 @@ func (s ServerHTTP) Run(
 
 	router := gin.New()
 
+	router.Use(gin.Logger())
+
+	router.LoadHTMLFiles("web/index.html")
+	router.Static("/assets", "./web/assets")
+	router.StaticFile("favicon.ico", "./web/favicon.ico")
+
 	confCors := cors.DefaultConfig()
 	confCors.AllowHeaders = conf.Server.CORSAllowHeaders
 	confCors.AllowMethods = conf.Server.CORSAllowMethods
@@ -132,6 +138,10 @@ func setRoutes(
 	regexps config.Regexps,
 	chErr chan<- error,
 ) {
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{})
+	})
+
 	v1 := router.Group("/api/v1")
 	{
 		v1.POST("/proxies", handlers.V1SendProxies(ctx, mu, conf, dbGeo, userRequests, regexps, chErr))
