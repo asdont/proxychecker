@@ -21,7 +21,7 @@
  ```
 
 ``` sh
-./apiproxychecker
+./proxychecker
 ```
 
 ```
